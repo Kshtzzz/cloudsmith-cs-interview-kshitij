@@ -7,10 +7,11 @@ on:
       - completed
     branches:
       - main
+  workflow_dispatch:  # Allow manual triggering
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
-  CLOUDSMITH_REPOSITORY: "staging"
+  CLOUDSMITH_REPOSITORY: "staging"  # Hardcoded for now, can be changed
   CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
@@ -20,7 +21,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}  # Run if build is successful or manually triggered
 
     steps:
       - name: Download artifact
@@ -32,11 +33,15 @@ jobs:
           github-token: ${{ github.token }}
           run-id: ${{ github.event.workflow_run.id }}
 
-
-
       - name: List directory contents
         run: ls -la dist/
         shell: bash
+
+      - name: Debug - Print Repository Variables
+        run: |
+          echo "CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}"
+          echo "CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}"
+          echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
 
       - name: Push package to Cloudsmith
         run: |
@@ -44,5 +49,5 @@ jobs:
             echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
+          cloudsmith push python ${{ vars.CLOUDSMITH_NAMESPACE }}/${{ vars.CLOUDSMITH_SERVICE_SLUG }} dist/*.tar.gz --republish
         shell: bash
