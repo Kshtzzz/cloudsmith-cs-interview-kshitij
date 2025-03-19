@@ -54,6 +54,15 @@ jobs:
             exit 1
           fi
 
+      - name: Authenticate Cloudsmith (Optional)
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          if [ -n "$CLOUDSMITH_API_KEY" ]; then
+            echo "✅ Using Cloudsmith API Key for authentication."
+            export CLOUDSMITH_API_KEY
+          fi
+
       - name: Push package to Cloudsmith
         run: |
           if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
@@ -63,4 +72,4 @@ jobs:
           
           echo "🔹 Uploading package to Cloudsmith: ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }}"
           
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
+          cloudsmith push python "${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }}" dist/*.tar.gz --republish
