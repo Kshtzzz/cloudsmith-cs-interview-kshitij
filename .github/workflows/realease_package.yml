@@ -7,6 +7,11 @@ on:
       - completed
   workflow_dispatch:
 
+env:
+  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}  # Using repository variable for namespace
+  CLOUDSMITH_REPOSITORY: "staging"  # Hardcoded for now, can be changed
+  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}  # Using repository variable for service slug
+
 permissions:
   contents: read
   actions: read
@@ -14,7 +19,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Download artifact
@@ -23,33 +28,24 @@ jobs:
           name: python-package
           path: dist
           repository: ${{ github.repository }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: 13947721315  # Explicitly using the run_id here
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install Cloudsmith CLI via Pip
-        run: |
-          python -m pip install --upgrade pip
-          pip install cloudsmith-cli
+          github-token: ${{ github.token }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: List directory contents
         run: ls -la dist/
         shell: bash
 
-      - name: Debug - Print Cloudsmith Namespace and Repository
+      - name: Debug - Print Repository Variables
         run: |
-          echo "CLOUDSMITH_NAMESPACE: ${{ secrets.CLOUDSMITH_NAMESPACE }}"
-          echo "CLOUDSMITH_REPOSITORY: staging"  # Hardcoding repository name for now
+          echo "CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}"
+          echo "CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}"
+          echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
 
       - name: Push package to Cloudsmith
         run: |
-          for file in dist/*.tar.gz dist/*.whl; do
-            if [ -f "$file" ]; then
-              cloudsmith push python ${{ secrets.CLOUDSMITH_NAMESPACE }}/${{ secrets.CLOUDSMITH_SERVICE_SLUG }} "$file" --republish
-            fi
-          done
+          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
+            echo "No package found to upload"
+            exit 1
+          fi
+          cloudsmith push python ${{ vars.CLOUDSMITH_NAMESPACE }}/${{ vars.CLOUDSMITH_SERVICE_SLUG }} dist/*.tar.gz --republish
         shell: bash
