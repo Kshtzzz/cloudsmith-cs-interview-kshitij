@@ -1,22 +1,17 @@
-name: Publish Python Package
-
-on:
-  workflow_dispatch:
-
-env:
-  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
-  CLOUDSMITH_REPOSITORY: "staging"
-  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
-
-permissions:
-  contents: read
-  actions: read
-
 jobs:
   publish:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Debugging: Check system dependencies
+        run: |
+          echo "Checking installed commands..."
+          which jq || echo "jq not found!"
+          which curl || echo "curl not found!"
+          which unzip || echo "unzip not found!"
+          which cloudsmith || echo "cloudsmith CLI not found!"
+          echo "Current PATH: $PATH"
+
       - name: Fetch latest workflow run ID
         run: |
           LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -34,6 +29,7 @@ jobs:
       - name: Download artifact
         run: |
           ARTIFACT_URL="https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ env.ARTIFACT_ID }}/zip"
+          echo "Downloading from $ARTIFACT_URL"
           curl -L -o artifact.zip -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACT_URL"
 
           mkdir -p dist
