@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Allows manual triggering
 
 permissions:
   contents: read
@@ -35,10 +34,9 @@ jobs:
           pip install build
 
       - name: Build package
-        run: python -m build
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: python-package
           path: dist/
