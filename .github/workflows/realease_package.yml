@@ -27,21 +27,21 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package
-          path: dist
+          name: python-package  # Make sure this matches the uploaded artifact name
+          path: dist            # Path where you want to download the artifact
           repository: ${{ github.repository }}
           github-token: ${{ github.token }}
-          run-id: "13950371460"
+          run-id: 13947721315   # Hardcoded run-id for testing
 
       - name: List directory contents
         run: ls -la dist/
         shell: bash
 
-      - name: Debug - Print Repository Variables
+      - name: Debug - Print Cloudsmith Variables
         run: |
-          echo "CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}"
-          echo "CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}"
+          echo "CLOUDSMITH_NAMESPACE: ${{ env.CLOUDSMITH_NAMESPACE }}"
           echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
+          echo "CLOUDSMITH_SERVICE_SLUG: ${{ env.CLOUDSMITH_SERVICE_SLUG }}"
 
       - name: Install cloudsmith-cli with pip
         run: |
@@ -55,5 +55,5 @@ jobs:
             echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ vars.CLOUDSMITH_NAMESPACE }}/${{ vars.CLOUDSMITH_SERVICE_SLUG }} dist/*.tar.gz --republish
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
         shell: bash
