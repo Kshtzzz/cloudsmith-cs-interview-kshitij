@@ -1,7 +1,10 @@
 name: Publish Python Package
 
 on:
-  workflow_call:  # Called from build_package.yml
+  workflow_run:
+    workflows: ["Build Python Package"]
+    types:
+      - completed
   workflow_dispatch:  # Allows manual execution
 
 env:
@@ -16,6 +19,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Download artifact
