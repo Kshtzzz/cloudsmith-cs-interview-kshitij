@@ -23,10 +23,10 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" \
             | jq -r '.artifacts[] | select(.name=="python-package") | .id' | sort -nr | head -n1)
           if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            echo "No previous artifact found!"
+            echo "❌ No previous artifact found!"
             exit 1
           fi
-          echo "Found artifact ID: $LATEST_RUN_ID"
+          echo "✅ Found artifact ID: $LATEST_RUN_ID"
           echo "ARTIFACT_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
 
       - name: Download artifact
@@ -39,10 +39,20 @@ jobs:
       - name: List directory contents
         run: ls -la dist/
 
-      - name: Install Cloudsmith CLI  # ✅ FIXED
+      - name: Install Cloudsmith CLI
         run: |
           python -m pip install --upgrade pip
           pip install cloudsmith-cli
+
+      - name: Debug Environment Variables
+        run: |
+          echo "Cloudsmith Namespace: ${{ env.CLOUDSMITH_NAMESPACE }}"
+          echo "Cloudsmith Repository: ${{ env.CLOUDSMITH_REPOSITORY }}"
+          echo "Service Slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}"
+          if [ -z "${{ env.CLOUDSMITH_NAMESPACE }}" ] || [ -z "${{ env.CLOUDSMITH_REPOSITORY }}" ]; then
+            echo "❌ ERROR: Cloudsmith Namespace or Repository is not set!"
+            exit 1
+          fi
 
       - name: Push package to Cloudsmith
         run: |
@@ -50,4 +60,7 @@ jobs:
             echo "❌ No package found to upload"
             exit 1
           fi
+          
+          echo "🔹 Uploading package to Cloudsmith: ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }}"
+          
           cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
