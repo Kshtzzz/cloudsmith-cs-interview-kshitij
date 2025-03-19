@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Added manual trigger
+  workflow_dispatch:  # Allows manual triggering
 
 permissions:
   contents: read
@@ -35,12 +35,24 @@ jobs:
           pip install build
 
       - name: Build package
-        run: python -m build  # This actually creates the package
+        run: python -m build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: python-package
           path: dist/
-          if-no-files-found: error  # Ensure it fails if no package is found
+          if-no-files-found: error
           retention-days: 5
+
+      - name: Trigger Release Package Workflow
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.actions.createWorkflowDispatch({
+              owner: '${{ github.repository_owner }}',
+              repo: '${{ github.event.repository.name }}',
+              workflow_id: 'release_package.yml',
+              ref: 'main'
+            })
