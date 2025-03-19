@@ -2,7 +2,7 @@ name: Publish Python Package
 
 on:
   workflow_run:
-    workflows: ["Build Python Package"]  # Ensure this name matches exactly!
+    workflows: ["Build Python Package"]
     types:
       - completed
   workflow_dispatch:
@@ -25,10 +25,11 @@ jobs:
       - name: Debug GitHub event
         run: echo '${{ toJson(github.event) }}'
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Download artifact from previous workflow
+        uses: dawidd6/action-download-artifact@v3
         with:
-          name: python-package  # Ensure this matches the uploaded artifact name
+          workflow: build_package.yml  # Ensure this matches the build workflow filename
+          name: python-package
           path: dist
 
       - name: List directory contents
