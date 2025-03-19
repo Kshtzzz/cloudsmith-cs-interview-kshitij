@@ -1,11 +1,8 @@
 name: Publish Python Package
 
 on:
-  workflow_run:
-    workflows: ["Build Python Package"]
-    types:
-      - completed
-  workflow_dispatch:  # Manual trigger added
+  workflow_call:  # Called from build_package.yml
+  workflow_dispatch:  # Allows manual execution
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -19,13 +16,12 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package  # Ensure this matches exactly with the build workflow
+          name: python-package
           path: dist
 
       - name: List directory contents
