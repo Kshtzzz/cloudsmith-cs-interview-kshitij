@@ -19,22 +19,20 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Debug GitHub event
         run: echo '${{ toJson(github.event) }}'
 
-      - name: Download artifact from previous workflow
-        uses: dawidd6/action-download-artifact@v3
+      - name: Download artifact
+        uses: actions/download-artifact@v4  # Use GitHub's default action
         with:
-          workflow: build_package.yml  # Ensure this matches the build workflow filename
           name: python-package
           path: dist
 
       - name: List directory contents
         run: ls -la dist/
-        shell: bash
 
       - name: Ensure Cloudsmith CLI is installed
         run: |
@@ -44,7 +42,6 @@ jobs:
             sudo apt-get install -y cloudsmith-cli
           fi
           cloudsmith --version
-        shell: bash
 
       - name: Push package to Cloudsmith
         run: |
@@ -53,4 +50,3 @@ jobs:
             exit 1
           fi
           cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
-        shell: bash
