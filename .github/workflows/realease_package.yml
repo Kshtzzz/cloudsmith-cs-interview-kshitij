@@ -1,3 +1,17 @@
+name: Publish Python Package
+
+on:
+  workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
+
+env:
+  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
+  CLOUDSMITH_REPOSITORY: "staging"
+  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
+
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -12,7 +26,13 @@ jobs:
           which cloudsmith || echo "cloudsmith CLI not found!"
           echo "Current PATH: $PATH"
 
-      - name: Fetch latest workflow run ID
+      - name: Install missing dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl unzip
+          pip install cloudsmith-cli  # Ensure Cloudsmith CLI is installed
+
+      - name: Fetch latest artifact ID
         run: |
           LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" \
