@@ -3,6 +3,7 @@ name: Promote Python Package
 on:
   repository_dispatch:
     types: [package_synchronized]
+  workflow_dispatch:
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -27,10 +28,12 @@ jobs:
 
       - name: Tag package as ready-for-production
         run: |
-          PACKAGE_QUERY="repository:${{ env.CLOUDSMITH_STAGING_REPO }}"
+          PACKAGE_QUERY="name:${{ env.PACKAGE_NAME }} repository:${{ env.CLOUDSMITH_STAGING_REPO }}"
           echo "Searching for package with query: $PACKAGE_QUERY"
           
           PACKAGE_DATA=$(cloudsmith list packages ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json)
+          
+          echo "Package data: $PACKAGE_DATA"
           
           IDENTIFIER=$(echo "$PACKAGE_DATA" | jq -r '.data[0].identifier_perm')
           
@@ -50,6 +53,8 @@ jobs:
           echo "Searching for package with query: $PACKAGE_QUERY"
           
           PACKAGE_DATA=$(cloudsmith list packages ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json)
+          
+          echo "Package data: $PACKAGE_DATA"
           
           IDENTIFIER=$(echo "$PACKAGE_DATA" | jq -r '.data[0].identifier_perm')
           
