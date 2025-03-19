@@ -1,7 +1,7 @@
 name: Publish Python Package
 
 on:
-  workflow_dispatch:  # Allows manual trigger from GitHub Actions UI
+  workflow_dispatch:  # ✅ Allows manual triggering from GitHub Actions
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -20,17 +20,17 @@ jobs:
       - name: Debugging: Check system dependencies
         run: |
           echo "Checking installed commands..."
-          which jq || echo "jq not found!"
-          which curl || echo "curl not found!"
-          which unzip || echo "unzip not found!"
-          which cloudsmith || echo "cloudsmith CLI not found!"
-          echo "Current PATH: $PATH"
+          which jq || echo "❌ jq not found!"
+          which curl || echo "❌ curl not found!"
+          which unzip || echo "❌ unzip not found!"
+          which cloudsmith || echo "❌ cloudsmith CLI not found!"
+          echo "✅ Current PATH: $PATH"
 
       - name: Install missing dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y jq curl unzip
-          pip install cloudsmith-cli  # Ensure Cloudsmith CLI is installed
+          pip install cloudsmith-cli  # ✅ Ensure Cloudsmith CLI is installed
 
       - name: Fetch latest artifact ID
         run: |
@@ -39,17 +39,17 @@ jobs:
             | jq -r '.artifacts[] | select(.name=="python-package") | .id' | sort -nr | head -n1)
 
           if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            echo "No previous artifact found!"
+            echo "❌ No previous artifact found!"
             exit 1
           fi
 
-          echo "Found artifact ID: $LATEST_RUN_ID"
+          echo "✅ Found artifact ID: $LATEST_RUN_ID"
           echo "ARTIFACT_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
 
       - name: Download artifact
         run: |
           ARTIFACT_URL="https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ env.ARTIFACT_ID }}/zip"
-          echo "Downloading from $ARTIFACT_URL"
+          echo "📥 Downloading from $ARTIFACT_URL"
           curl -L -o artifact.zip -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACT_URL"
 
           mkdir -p dist
@@ -61,7 +61,7 @@ jobs:
       - name: Push package to Cloudsmith
         run: |
           if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
-            echo "No package found to upload"
+            echo "❌ No package found to upload"
             exit 1
           fi
           cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
