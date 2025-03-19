@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
-  CLOUDSMITH_REPOSITORY: "staging"
-  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
+  CLOUDSMITH_NAMESPACE: ${{ secrets.CLOUDSMITH_NAMESPACE }}  # Accessing secret for namespace
+  CLOUDSMITH_REPOSITORY: "staging"  # Replace with your repository name if needed
+  CLOUDSMITH_SERVICE_SLUG: ${{ secrets.CLOUDSMITH_SERVICE_SLUG }}  # Accessing secret for service slug
 
 permissions:
   contents: read
