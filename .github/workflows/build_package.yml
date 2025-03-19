@@ -44,15 +44,3 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 5
-
-      - name: Trigger Release Package Workflow
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.actions.createWorkflowDispatch({
-              owner: '${{ github.repository_owner }}',
-              repo: '${{ github.event.repository.name }}',
-              workflow_id: 'release_package.yml',
-              ref: 'main'
-            })
