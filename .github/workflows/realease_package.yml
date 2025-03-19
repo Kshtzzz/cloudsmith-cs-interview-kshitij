@@ -5,8 +5,6 @@ on:
     workflows: ["Build Python Package"]
     types:
       - completed
-    branches:
-      - main
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -23,26 +21,33 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-package
-          path: dist
-          repository: ${{ github.repository }}
-          github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
+      - name: Download artifact using GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          mkdir -p dist
+          ARTIFACT_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts" | \
+            jq -r '.artifacts[] | select(.name=="python-package") | .archive_download_url')
 
+          if [[ -z "$ARTIFACT_URL" || "$ARTIFACT_URL" == "null" ]]; then
+            echo "No artifact found."
+            exit 1
+          fi
 
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -o artifact.zip "$ARTIFACT_URL"
+          unzip artifact.zip -d dist/
+          rm artifact.zip
 
       - name: List directory contents
         run: ls -la dist/
-        shell: bash
 
       - name: Push package to Cloudsmith
         run: |
-          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
+          if ! ls dist/*.tar.gz dist/*.whl 1> /dev/null 2>&1; then
             echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
-        shell: bash
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/* --republish
