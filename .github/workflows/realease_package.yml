@@ -22,6 +22,7 @@ jobs:
           LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" \
             | jq -r '.artifacts[] | select(.name=="python-package") | .id' | sort -nr | head -n1)
+
           if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
             echo "❌ No previous artifact found!"
             exit 1
@@ -44,23 +45,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install cloudsmith-cli
 
-      - name: Debug Environment Variables
+      - name: Debug Cloudsmith Variables
         run: |
-          echo "Cloudsmith Namespace: ${{ env.CLOUDSMITH_NAMESPACE }}"
-          echo "Cloudsmith Repository: ${{ env.CLOUDSMITH_REPOSITORY }}"
-          echo "Service Slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}"
+          echo "🔹 Cloudsmith Namespace: ${{ env.CLOUDSMITH_NAMESPACE }}"
+          echo "🔹 Cloudsmith Repository: ${{ env.CLOUDSMITH_REPOSITORY }}"
+          echo "🔹 Service Slug: ${{ env.CLOUDSMITH_SERVICE_SLUG }}"
+
           if [ -z "${{ env.CLOUDSMITH_NAMESPACE }}" ] || [ -z "${{ env.CLOUDSMITH_REPOSITORY }}" ]; then
             echo "❌ ERROR: Cloudsmith Namespace or Repository is not set!"
             exit 1
           fi
 
-      - name: Authenticate Cloudsmith (Optional)
+      - name: Authenticate Cloudsmith (If Needed)
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
           if [ -n "$CLOUDSMITH_API_KEY" ]; then
             echo "✅ Using Cloudsmith API Key for authentication."
             export CLOUDSMITH_API_KEY
+          else
+            echo "⚠️ WARNING: No Cloudsmith API Key found. Proceeding without authentication."
           fi
 
       - name: Push package to Cloudsmith
@@ -69,7 +73,7 @@ jobs:
             echo "❌ No package found to upload"
             exit 1
           fi
-          
-          echo "🔹 Uploading package to Cloudsmith: ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }}"
-          
+
+          echo "🚀 Uploading package to Cloudsmith: ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }}"
+
           cloudsmith push python "${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }}" dist/*.tar.gz --republish
