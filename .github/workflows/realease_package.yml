@@ -1,11 +1,7 @@
+
 name: Publish Python Package
 
 on:
-  workflow_run:
-    workflows: ["Build Python Package"]
-    types:
-      - completed
-
   workflow_dispatch:
 
 env:
@@ -20,32 +16,32 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
-
-      - name: Install Cloudsmith CLI
+      - name: Fetch latest workflow run ID
         run: |
-          python -m pip install --upgrade pip
-          pip install cloudsmith-cli
-
+          LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" \
+            | jq -r '.artifacts[] | select(.name=="python-package") | .id' | sort -nr | head -n1)
+          if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
+            echo "No previous artifact found!"
+            exit 1
+          fi
+          echo "Found artifact ID: $LATEST_RUN_ID"
+          echo "ARTIFACT_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
       - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-package
-          path: dist
-
+        run: |
+          ARTIFACT_URL="https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ env.ARTIFACT_ID }}/zip"
+          curl -L -o artifact.zip -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACT_URL"
+          mkdir -p dist
+          unzip artifact.zip -d dist
       - name: List directory contents
         run: ls -la dist/
 
       - name: Push package to Cloudsmith
         run: |
-          if ! ls dist/*.tar.gz dist/*.whl 1> /dev/null 2>&1; then
-            echo "❌ No package found to upload."
+          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
+            echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/* --republish
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
