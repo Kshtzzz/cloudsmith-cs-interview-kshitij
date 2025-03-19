@@ -45,6 +45,11 @@ jobs:
         run: ls -la dist/
         shell: bash
 
+      - name: Debug - Print Cloudsmith Namespace and Repository
+        run: |
+          echo "CLOUDSMITH_NAMESPACE: ${{ env.CLOUDSMITH_NAMESPACE }}"
+          echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
+
       - name: Push package to Cloudsmith
         run: |
           for file in dist/*.tar.gz dist/*.whl; do
