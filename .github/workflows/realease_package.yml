@@ -25,7 +25,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package
+          name: python-package  # Ensure this matches exactly with the build workflow
           path: dist
 
       - name: List directory contents
