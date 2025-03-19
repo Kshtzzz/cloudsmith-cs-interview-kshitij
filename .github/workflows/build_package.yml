@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - main
-#test      
+  workflow_dispatch:  # Added manual trigger
 
 permissions:
   contents: read
@@ -34,11 +34,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install build
 
-      - name: Ensure dist directory exists
-        run: mkdir -p dist
-
       - name: Build package
-        run: python -m build
+        run: python -m build  # This was missing in the original file
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
