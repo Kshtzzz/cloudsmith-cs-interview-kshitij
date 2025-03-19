@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  CLOUDSMITH_NAMESPACE: ${{ secrets.CLOUDSMITH_NAMESPACE }}  # Accessing secret for namespace
+  CLOUDSMITH_NAMESPACE: ${{ github.repository_variables.CLOUDSMITH_NAMESPACE }}  # Access repository variable for namespace
   CLOUDSMITH_REPOSITORY: "staging"  # Replace with your repository name if needed
-  CLOUDSMITH_SERVICE_SLUG: ${{ secrets.CLOUDSMITH_SERVICE_SLUG }}  # Accessing secret for service slug
+  CLOUDSMITH_SERVICE_SLUG: ${{ github.repository_variables.CLOUDSMITH_SERVICE_SLUG }}  # Access repository variable for service slug
 
 permissions:
   contents: read
@@ -47,14 +47,14 @@ jobs:
 
       - name: Debug - Print Cloudsmith Namespace and Repository
         run: |
-          echo "CLOUDSMITH_NAMESPACE: ${{ env.CLOUDSMITH_NAMESPACE }}"
-          echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
+          echo "CLOUDSMITH_NAMESPACE: ${{ github.repository_variables.CLOUDSMITH_NAMESPACE }}"
+          echo "CLOUDSMITH_REPOSITORY: ${{ github.repository_variables.CLOUDSMITH_REPOSITORY }}"
 
       - name: Push package to Cloudsmith
         run: |
           for file in dist/*.tar.gz dist/*.whl; do
             if [ -f "$file" ]; then
-              cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} "$file" --republish
+              cloudsmith push python ${{ github.repository_variables.CLOUDSMITH_NAMESPACE }}/${{ github.repository_variables.CLOUDSMITH_REPOSITORY }} "$file" --republish
             fi
           done
         shell: bash
