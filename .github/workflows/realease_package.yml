@@ -7,6 +7,7 @@ on:
         description: "Workflow Run ID of the Build Package"
         required: true
 
+#test
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
   CLOUDSMITH_REPOSITORY: "staging"
