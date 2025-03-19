@@ -9,6 +9,7 @@ on:
       - main
   workflow_dispatch:  # Added manual trigger
 
+#test
 permissions:
   contents: read
   actions: write
