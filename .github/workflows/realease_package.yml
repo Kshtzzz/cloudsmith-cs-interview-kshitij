@@ -5,6 +5,7 @@ on:
     workflows: ["Build Python Package"]
     types:
       - completed
+  workflow_dispatch:
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -18,7 +19,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Download artifact
@@ -26,6 +27,9 @@ jobs:
         with:
           name: python-package
           path: dist
+          repository: ${{ github.repository }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id || github.run_id }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
