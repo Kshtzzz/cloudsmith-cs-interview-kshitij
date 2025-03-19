@@ -43,6 +43,12 @@ jobs:
           echo "CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}"
           echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
 
+      - name: Install cloudsmith-cli with pip
+        run: |
+          python -m pip install --upgrade pip
+          pip install cloudsmith-cli
+        shell: bash
+
       - name: Push package to Cloudsmith
         run: |
           if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
