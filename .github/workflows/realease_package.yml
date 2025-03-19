@@ -1,12 +1,7 @@
 name: Publish Python Package
 
 on:
-  workflow_run:
-    workflows: ["Build Python Package"]
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -20,23 +15,27 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Get artifact download URL
+      - name: Fetch latest workflow run ID
         run: |
-          ARTIFACT_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts" \
-            | jq -r '.artifacts[] | select(.name=="python-package") | .archive_download_url')
+          LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" \
+            | jq -r '.artifacts[] | select(.name=="python-package") | .id' | sort -nr | head -n1)
 
-          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
-            echo "Artifact not found!"
+          if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
+            echo "No previous artifact found!"
             exit 1
           fi
 
-          echo "Downloading artifact from: $ARTIFACT_URL"
+          echo "Found artifact ID: $LATEST_RUN_ID"
+          echo "ARTIFACT_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
+
+      - name: Download artifact
+        run: |
+          ARTIFACT_URL="https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ env.ARTIFACT_ID }}/zip"
           curl -L -o artifact.zip -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACT_URL"
-          
+
           mkdir -p dist
           unzip artifact.zip -d dist
 
