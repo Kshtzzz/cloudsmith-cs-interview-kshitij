@@ -5,9 +5,7 @@ on:
     workflows: ["Build Python Package"]
     types:
       - completed
-    branches:
-      - main
-  workflow_dispatch:  # Added manual trigger
+  workflow_dispatch:  # Manual trigger added
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
