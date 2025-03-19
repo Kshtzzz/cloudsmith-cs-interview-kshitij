@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
 
 env:
-  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
+  CLOUDSMITH_NAMESPACE: "test-namespace"
   CLOUDSMITH_REPOSITORY: "staging"
-  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
+  CLOUDSMITH_SERVICE_SLUG: "test-service"
 
 permissions:
   contents: read
@@ -52,4 +52,8 @@ jobs:
             exit 1
           fi
 
-          for FILE i
+          for FILE in dist/*.{tar.gz,whl}; do
+            echo "Uploading $FILE to Cloudsmith..."
+            cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} "$FILE" --republish
+          done
+        shell: bash
