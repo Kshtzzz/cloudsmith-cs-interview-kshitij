@@ -1,7 +1,10 @@
 name: Publish Python Package
 
 on:
-  workflow_dispatch:  # ✅ Allows manual triggering from GitHub Actions
+  workflow_run:
+    workflows: ["Build Python Package"]
+    types:
+      - completed
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -15,53 +18,36 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Debugging: Check system dependencies
+      - name: Download artifact using GitHub API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          echo "Checking installed commands..."
-          which jq || echo "❌ jq not found!"
-          which curl || echo "❌ curl not found!"
-          which unzip || echo "❌ unzip not found!"
-          which cloudsmith || echo "❌ cloudsmith CLI not found!"
-          echo "✅ Current PATH: $PATH"
+          mkdir -p dist
+          ARTIFACT_URL=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts" | \
+            jq -r '.artifacts[] | select(.name=="python-package") | .archive_download_url')
 
-      - name: Install missing dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl unzip
-          pip install cloudsmith-cli  # ✅ Ensure Cloudsmith CLI is installed
-
-      - name: Fetch latest artifact ID
-        run: |
-          LATEST_RUN_ID=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/artifacts" \
-            | jq -r '.artifacts[] | select(.name=="python-package") | .id' | sort -nr | head -n1)
-
-          if [ -z "$LATEST_RUN_ID" ] || [ "$LATEST_RUN_ID" = "null" ]; then
-            echo "❌ No previous artifact found!"
+          if [[ -z "$ARTIFACT_URL" || "$ARTIFACT_URL" == "null" ]]; then
+            echo "No artifact found."
             exit 1
           fi
 
-          echo "✅ Found artifact ID: $LATEST_RUN_ID"
-          echo "ARTIFACT_ID=$LATEST_RUN_ID" >> $GITHUB_ENV
-
-      - name: Download artifact
-        run: |
-          ARTIFACT_URL="https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ env.ARTIFACT_ID }}/zip"
-          echo "📥 Downloading from $ARTIFACT_URL"
-          curl -L -o artifact.zip -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACT_URL"
-
-          mkdir -p dist
-          unzip artifact.zip -d dist
+          curl -L -H "Authorization: token $GITHUB_TOKEN" -o artifact.zip "$ARTIFACT_URL"
+          unzip artifact.zip -d dist/
+          rm artifact.zip
 
       - name: List directory contents
         run: ls -la dist/
 
       - name: Push package to Cloudsmith
         run: |
-          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
-            echo "❌ No package found to upload"
+          if ! ls dist/*.tar.gz dist/*.whl 1> /dev/null 2>&1; then
+            echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/* --republish
