@@ -9,7 +9,6 @@ on:
       - main
   workflow_dispatch:  # Added manual trigger
 
-#test
 permissions:
   contents: read
   actions: write
@@ -36,12 +35,12 @@ jobs:
           pip install build
 
       - name: Build package
-        run: python -m build  # This was missing in the original file
+        run: python -m build  # This actually creates the package
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: python-package
           path: dist/
-          if-no-files-found: error
+          if-no-files-found: error  # Ensure it fails if no package is found
           retention-days: 5
