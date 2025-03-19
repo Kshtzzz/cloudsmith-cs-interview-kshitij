@@ -1,11 +1,11 @@
 name: Publish Python Package
 
 on:
-  workflow_run:
-    workflows: ["Build Python Package"]
-    types:
-      - completed
   workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Workflow Run ID of the Build Package"
+        required: true
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -19,15 +19,16 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Debug GitHub event
         run: echo '${{ toJson(github.event) }}'
 
       - name: Download artifact
-        uses: actions/download-artifact@v4  # Use GitHub's default action
+        uses: dawidd6/action-download-artifact@v3
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          run_id: "13944364732"
           name: python-package
           path: dist
 
@@ -44,9 +45,3 @@ jobs:
           cloudsmith --version
 
       - name: Push package to Cloudsmith
-        run: |
-          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
-            echo "No package found to upload"
-            exit 1
-          fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
