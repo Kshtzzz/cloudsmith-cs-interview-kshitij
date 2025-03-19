@@ -1,13 +1,13 @@
 name: Publish Python Package
 
 on:
-  workflow_dispatch:
-    inputs:
-      build_run_id:
-        description: "Workflow Run ID of the Build Package"
-        required: true
+  workflow_run:
+    workflows: ["Build Python Package"]
+    types:
+      - completed
+    branches:
+      - main
 
-#test
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
   CLOUDSMITH_REPOSITORY: "staging"
@@ -20,29 +20,28 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Debug GitHub event
-        run: echo '${{ toJson(github.event) }}'
-
       - name: Download artifact
-        uses: dawidd6/action-download-artifact@v3
+        uses: actions/download-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          run_id: "13944364732"
           name: python-package
           path: dist
 
       - name: List directory contents
         run: ls -la dist/
+        shell: bash
 
-      - name: Ensure Cloudsmith CLI is installed
+      - name: Install Cloudsmith CLI
         run: |
-          if ! command -v cloudsmith &> /dev/null; then
-            echo "Cloudsmith CLI not found! Installing..."
-            curl -1sLf 'https://dl.cloudsmith.io/public/cloudsmith/cli/setup.sh' | bash
-            sudo apt-get install -y cloudsmith-cli
-          fi
-          cloudsmith --version
+          python -m pip install --upgrade pip
+          pip install cloudsmith-cli
 
       - name: Push package to Cloudsmith
+        run: |
+          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
+            echo "No package found to upload"
+            exit 1
+          fi
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
