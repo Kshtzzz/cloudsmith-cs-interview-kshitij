@@ -23,20 +23,25 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: python-package
-          path: dist
+      - name: Get artifact download URL
+        run: |
+          ARTIFACT_URL=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts" \
+            | jq -r '.artifacts[] | select(.name=="python-package") | .archive_download_url')
+
+          if [ -z "$ARTIFACT_URL" ] || [ "$ARTIFACT_URL" = "null" ]; then
+            echo "Artifact not found!"
+            exit 1
+          fi
+
+          echo "Downloading artifact from: $ARTIFACT_URL"
+          curl -L -o artifact.zip -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$ARTIFACT_URL"
+          
+          mkdir -p dist
+          unzip artifact.zip -d dist
 
       - name: List directory contents
         run: ls -la dist/
-        shell: bash
-
-      - name: Install Cloudsmith CLI
-        run: |
-          python -m pip install --upgrade pip
-          pip install cloudsmith-cli
 
       - name: Push package to Cloudsmith
         run: |
