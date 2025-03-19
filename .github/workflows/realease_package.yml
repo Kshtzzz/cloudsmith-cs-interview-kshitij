@@ -7,11 +7,6 @@ on:
       - completed
   workflow_dispatch:
 
-env:
-  CLOUDSMITH_NAMESPACE: ${{ secrets.CLOUDSMITH_NAMESPACE }}  # Accessing GitHub secret for namespace
-  CLOUDSMITH_REPOSITORY: "staging"  # Replace with your repository name if needed
-  CLOUDSMITH_SERVICE_SLUG: ${{ secrets.CLOUDSMITH_SERVICE_SLUG }}  # Accessing GitHub secret for service slug
-
 permissions:
   contents: read
   actions: read
@@ -48,13 +43,13 @@ jobs:
       - name: Debug - Print Cloudsmith Namespace and Repository
         run: |
           echo "CLOUDSMITH_NAMESPACE: ${{ secrets.CLOUDSMITH_NAMESPACE }}"
-          echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
+          echo "CLOUDSMITH_REPOSITORY: staging"  # Hardcoding repository name for now
 
       - name: Push package to Cloudsmith
         run: |
           for file in dist/*.tar.gz dist/*.whl; do
             if [ -f "$file" ]; then
-              cloudsmith push python ${{ secrets.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} "$file" --republish
+              cloudsmith push python ${{ secrets.CLOUDSMITH_NAMESPACE }}/${{ secrets.CLOUDSMITH_SERVICE_SLUG }} "$file" --republish
             fi
           done
         shell: bash
