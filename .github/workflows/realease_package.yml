@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
 
 env:
-  CLOUDSMITH_NAMESPACE: "test-namespace"
+  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
   CLOUDSMITH_REPOSITORY: "staging"
-  CLOUDSMITH_SERVICE_SLUG: "test-service"
+  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
   contents: read
@@ -46,14 +46,9 @@ jobs:
 
       - name: Push package to Cloudsmith
         run: |
-          PACKAGE_FOUND=$(ls dist/*.tar.gz dist/*.whl 2>/dev/null | wc -l)
-          if [ "$PACKAGE_FOUND" -eq "0" ]; then
+          if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
             echo "No package found to upload"
             exit 1
           fi
-
-          for FILE in dist/*.{tar.gz,whl}; do
-            echo "Uploading $FILE to Cloudsmith..."
-            cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} "$FILE" --republish
-          done
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
         shell: bash
