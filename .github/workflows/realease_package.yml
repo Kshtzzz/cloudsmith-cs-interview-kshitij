@@ -36,10 +36,10 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Cloudsmith CLI
+      - name: Install Cloudsmith CLI via Pip
         run: |
-          curl -fsSL https://dl.cloudsmith.io/public/cloudsmith-io/cloudsmith-cli/setup.deb.sh | sudo bash
-          sudo apt-get install cloudsmith-cli
+          python -m pip install --upgrade pip
+          pip install cloudsmith-cli
 
       - name: List directory contents
         run: ls -la dist/
