@@ -10,9 +10,9 @@ on:
   workflow_dispatch:  # Allow manual triggering
 
 env:
-  CLOUDSMITH_NAMESPACE: "kshitij-test"  # Your Cloudsmith namespace
-  CLOUDSMITH_REPOSITORY: "test-repo"    # Your Cloudsmith repository
-  CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}  # Cloudsmith API Key from GitHub secrets
+  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
+  CLOUDSMITH_REPOSITORY: "staging"  
+  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
   contents: read
@@ -27,19 +27,26 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package
-          path: dist
+          name: python-package  
+          path: dist            
           repository: ${{ github.repository }}
           github-token: ${{ github.token }}
-          run-id: "13950371460" # Use dynamic run-id from the triggered workflow
+          run-id: 13950371460  
 
       - name: List directory contents
         run: ls -la dist/
+        shell: bash
 
+      - name: Debug - Print Cloudsmith Variables
+        run: |
+          echo "CLOUDSMITH_NAMESPACE: ${{ env.CLOUDSMITH_NAMESPACE }}"
+          echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
+          echo "CLOUDSMITH_SERVICE_SLUG: ${{ env.CLOUDSMITH_SERVICE_SLUG }}"
       - name: Install cloudsmith-cli with pip
         run: |
           python -m pip install --upgrade pip
           pip install cloudsmith-cli
+        shell: bash
 
       - name: Push package to Cloudsmith
         run: |
