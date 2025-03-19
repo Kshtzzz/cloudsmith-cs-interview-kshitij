@@ -8,7 +8,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-#test
 
 permissions:
   contents: read
@@ -18,8 +17,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      artifact_name: python-package
 
     steps:
       - name: Checkout code
@@ -44,4 +41,4 @@ jobs:
           name: python-package
           path: dist/
           if-no-files-found: error
-          retention-days: 5
+          retention-days: 90  # Increased retention so that we can fetch it later
