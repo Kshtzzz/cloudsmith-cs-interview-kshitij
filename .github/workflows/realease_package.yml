@@ -31,7 +31,7 @@ jobs:
           path: dist
           repository: ${{ github.repository }}
           github-token: ${{ github.token }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: 13971903640
 
       - name: List directory contents
         run: ls -la dist/
