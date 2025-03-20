@@ -9,13 +9,14 @@ on:
         type: string
 
 env:
-  CLOUDSMITH_NAMESPACE: kshitij-test
+  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
   CLOUDSMITH_STAGING_REPO: 'staging'
   CLOUDSMITH_PRODUCTION_REPO: 'production'
   PACKAGE_NAME: 'example_package'
 
 permissions:
-  id-token: write
+  contents: read
+  actions: read
 
 jobs:
   promote:
@@ -23,18 +24,19 @@ jobs:
 
     steps:
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
-        with:
-          oidc-namespace: kshitij-test
-          oidc-service-slug: interview-kshitij  # Updated to match the correct service slug
+        run: |
+          python -m pip install --upgrade pip
+          pip install cloudsmith-cli
 
       - name: Get package identifier and promote
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
           # Query for the package and get its identifier
           PACKAGE_QUERY="filename:${PACKAGE_NAME}-${{ github.event.inputs.package_version }}.tar.gz"
           echo "Searching for package with query: $PACKAGE_QUERY"
           
-          PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json)
+          PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json --api-key $CLOUDSMITH_API_KEY)
           
           # Extract the identifier_perm using jq
           IDENTIFIER=$(echo "$PACKAGE_DATA" | jq -r '.data[0].identifier_perm // empty')
@@ -49,5 +51,6 @@ jobs:
           # Promote package using the identifier
           cloudsmith mv --yes \
             ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
-            ${{ env.CLOUDSMITH_PRODUCTION_REPO }}
+            ${{ env.CLOUDSMITH_PRODUCTION_REPO }} \
+            --api-key $CLOUDSMITH_API_KEY
         shell: bash
