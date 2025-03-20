@@ -5,14 +5,11 @@ on:
     workflows: ["Build Python Package"]
     types:
       - completed
-    branches:
-      - main
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: 
 
 env:
-  CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
+  CLOUDSMITH_NAMESPACE: "kshitij-test"  
   CLOUDSMITH_REPOSITORY: "staging"  
-  CLOUDSMITH_SERVICE_SLUG: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
 
 permissions:
   contents: read
@@ -21,7 +18,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}  # Run if build is successful or manually triggered
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
 
     steps:
       - name: Download artifact
@@ -29,30 +26,26 @@ jobs:
         with:
           name: python-package  
           path: dist            
-          repository: ${{ github.repository }}
-          github-token: ${{ github.token }}
-          run-id: 13968336642  
 
       - name: List directory contents
         run: ls -la dist/
-        shell: bash
 
       - name: Debug - Print Cloudsmith Variables
         run: |
           echo "CLOUDSMITH_NAMESPACE: ${{ env.CLOUDSMITH_NAMESPACE }}"
           echo "CLOUDSMITH_REPOSITORY: ${{ env.CLOUDSMITH_REPOSITORY }}"
-          echo "CLOUDSMITH_SERVICE_SLUG: ${{ env.CLOUDSMITH_SERVICE_SLUG }}"
+
       - name: Install cloudsmith-cli with pip
         run: |
           python -m pip install --upgrade pip
           pip install cloudsmith-cli
-        shell: bash
 
       - name: Push package to Cloudsmith
+        env:
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }} 
         run: |
           if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
             echo "No package found to upload"
             exit 1
           fi
-          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish
-        shell: bash
+          cloudsmith push python ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_REPOSITORY }} dist/*.tar.gz --republish --api-key $CLOUDSMITH_API_KEY
