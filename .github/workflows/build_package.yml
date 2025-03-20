@@ -7,8 +7,7 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:  # Allow manual triggering
-
+  workflow_dispatch:  
 permissions:
   contents: read
   actions: write
@@ -41,4 +40,4 @@ jobs:
           name: python-package
           path: dist/
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 10
