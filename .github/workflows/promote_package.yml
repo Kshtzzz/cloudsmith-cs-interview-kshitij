@@ -1,13 +1,18 @@
 name: Promote Python Package
 
 on:
-  repository_dispatch:
-    types: [package_synchronized]
+  workflow_dispatch:
+    inputs:
+      package_version:
+        description: "Package version to promote (e.g., 0.0.1)"
+        required: true
+        type: string
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
-  CLOUDSMITH_STAGING_REPO: 'staging'
-  CLOUDSMITH_PRODUCTION_REPO: 'production'
+  CLOUDSMITH_STAGING_REPO: "staging"
+  CLOUDSMITH_PRODUCTION_REPO: "production"
+  PACKAGE_NAME: "example_package"
 
 permissions:
   contents: read
@@ -23,58 +28,31 @@ jobs:
           python -m pip install --upgrade pip
           pip install cloudsmith-cli
 
-      - name: Extract package information
+      - name: Get package identifier and promote
         env:
           CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
-          PACKAGE_NAME="${{ github.event.client_payload.package_name }}"
-          PACKAGE_VERSION="${{ github.event.client_payload.package_version }}"
-
-          echo "Received package: $PACKAGE_NAME version: $PACKAGE_VERSION"
-
-          if [ -z "$PACKAGE_NAME" ] || [ -z "$PACKAGE_VERSION" ]; then
-            echo "Error: Missing package details from webhook."
-            exit 1
-          fi
-
-      - name: Tag Package as Ready for Production
-        env:
-          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
-        run: |
-          PACKAGE_QUERY="filename:${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz"
-          PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "$PACKAGE_QUERY" -F json --api-key $CLOUDSMITH_API_KEY)
-
+          # Query for the package and get its identifier
+          PACKAGE_QUERY="filename:${PACKAGE_NAME}-${{ github.event.inputs.package_version }}.tar.gz"
+          echo "Searching for package with query: $PACKAGE_QUERY"
+          
+          PACKAGE_DATA=$(cloudsmith list package \
+            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} \
+            -q "$PACKAGE_QUERY" -F json --api-key $CLOUDSMITH_API_KEY)
+          
+          # Extract the identifier_perm using jq
           IDENTIFIER=$(echo "$PACKAGE_DATA" | jq -r '.data[0].identifier_perm // empty')
-
+          
           if [ -z "$IDENTIFIER" ]; then
             echo "Failed to find package identifier"
             exit 1
           fi
-
+          
           echo "Found package identifier: $IDENTIFIER"
-
-          # Add tag 'ready-for-production'
-          cloudsmith tags add ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER "ready-for-production" --api-key $CLOUDSMITH_API_KEY
-
-      - name: Promote Ready Packages
-        env:
-          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
-        run: |
-          echo "Fetching all packages tagged with 'ready-for-production'..."
           
-          PACKAGE_DATA=$(cloudsmith list package ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }} -q "tag:ready-for-production" -F json --api-key $CLOUDSMITH_API_KEY)
-          
-          IDENTIFIERS=$(echo "$PACKAGE_DATA" | jq -r '.data[] | .identifier_perm')
-
-          if [ -z "$IDENTIFIERS" ]; then
-            echo "No packages found with 'ready-for-production' tag."
-            exit 0
-          fi
-
-          for ID in $IDENTIFIERS; do
-            echo "Promoting package ID: $ID"
-            cloudsmith mv --yes \
-              ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$ID \
-              ${{ env.CLOUDSMITH_PRODUCTION_REPO }} \
-              --api-key $CLOUDSMITH_API_KEY
-          done
+          # Promote package using the identifier
+          cloudsmith mv --yes \
+            ${{ env.CLOUDSMITH_NAMESPACE }}/${{ env.CLOUDSMITH_STAGING_REPO }}/$IDENTIFIER \
+            ${{ env.CLOUDSMITH_PRODUCTION_REPO }} \
+            --api-key $CLOUDSMITH_API_KEY
+        shell: bash
