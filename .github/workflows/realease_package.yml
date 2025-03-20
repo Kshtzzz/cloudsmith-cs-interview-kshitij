@@ -7,7 +7,7 @@ on:
       - completed
     branches:
       - main
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: 
 
 env:
   CLOUDSMITH_NAMESPACE: ${{ vars.CLOUDSMITH_NAMESPACE }}
@@ -31,7 +31,7 @@ jobs:
           path: dist
           repository: ${{ github.repository }}
           github-token: ${{ github.token }}
-          run-id: 13968594248
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: List directory contents
         run: ls -la dist/
