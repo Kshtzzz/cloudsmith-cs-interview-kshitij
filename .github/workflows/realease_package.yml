@@ -5,11 +5,11 @@ on:
     workflows: ["Build Python Package"]
     types:
       - completed
-  workflow_dispatch: 
+  workflow_dispatch:
 
 env:
-  CLOUDSMITH_NAMESPACE: "kshitij-test"  
-  CLOUDSMITH_REPOSITORY: "staging"  
+  CLOUDSMITH_NAMESPACE: "kshitij-test"
+  CLOUDSMITH_REPOSITORY: "staging"
 
 permissions:
   contents: read
@@ -24,8 +24,8 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: python-package  
-          path: dist            
+          name: python-package
+          path: dist
 
       - name: List directory contents
         run: ls -la dist/
@@ -42,7 +42,7 @@ jobs:
 
       - name: Push package to Cloudsmith
         env:
-          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }} 
+          CLOUDSMITH_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
         run: |
           if ! ls dist/*.tar.gz 1> /dev/null 2>&1; then
             echo "No package found to upload"
